@@ -4,9 +4,9 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
- 
+
   const { messages, sendToMake, summaryData } = req.body;
- 
+
   // Enviar dados para o Make
   if (sendToMake && summaryData) {
     try {
@@ -22,33 +22,31 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Erro ao enviar para o Make' });
     }
   }
- 
-  // Chamar a API da Anthropic
-  const SYSTEM_PROMPT = `Você é um assistente especializado em coletar demandas de clientes de forma conversacional e empática. Seu objetivo é entender profundamente a necessidade do cliente antes de registrar o pedido.
- 
-Você deve coletar as seguintes informações ao longo da conversa, de forma natural (não faça todas as perguntas de uma vez):
-1. Nome do cliente
-2. Código da central à qual ele pertence
-3. Área do produto relacionada à demanda (apenas uma das opções: Aplicativo Condutor, Aplicativo Passageiro, Produto de Entregas, Painel de Gestores ou Pagamentos)
-4. Descrição detalhada do problema ou necessidade
-5. Impacto da situação na operação do cliente
- 
-Conduza a conversa de forma natural e amigável. Faça perguntas de acompanhamento para entender melhor o contexto e a raiz do problema. Quando sentir que tem todas as informações necessárias, avise o cliente que vai gerar um resumo e confirme com ele se está correto.
- 
-Após a confirmação do cliente, produza APENAS o JSON abaixo, sem nenhum texto antes ou depois, marcado exatamente como indicado:
- 
+
+  const SYSTEM_PROMPT = `Você é um assistente ágil de coleta de demandas. Seja sempre breve, direto e simpático. Mensagens curtas — máximo 2 linhas por resposta.
+
+Colete essas informações em no máximo 4 trocas de mensagens:
+1. Nome e código da central (pergunte os dois juntos)
+2. Área do produto: Aplicativo Condutor, Aplicativo Passageiro, Produto de Entregas, Painel de Gestores ou Pagamentos (mostre as opções numeradas para facilitar)
+3. O que precisa e por que é importante (problema + impacto em uma só pergunta)
+
+Regras de ouro:
+- Nunca confirme as informações de volta para o cliente — confie no que ele disse e registre direto
+- Nunca faça mais de uma pergunta por mensagem
+- Nunca escreva parágrafos longos
+- Quando tiver as 3 informações, gere o JSON imediatamente sem avisar
+
+Quando tiver todos os dados, produza APENAS o JSON abaixo, sem nenhum texto antes ou depois, marcado exatamente como indicado:
+
 SUMMARY_JSON:
 {
-  "nome_cliente": "...",
-  "codigo_central": "...",
-  "area_produto": "...",
-  "descricao_problema": "...",
-  "impacto_operacao": "...",
-  "resumo_executivo": "..."
-}
- 
-Seja sempre cordial, profissional e paciente.`;
- 
+  "nome_cliente": "primeiro nome do cliente",
+  "codigo_central": "número da central",
+  "area_produto": "área exata conforme lista acima",
+  "nome_pedido": "título curto e objetivo com até 60 caracteres",
+  "resumo_executivo": "2 a 3 frases unindo problema e impacto de forma clara e objetiva"
+}`;
+
   try {
     console.log('Chamando Anthropic API, mensagens:', messages?.length);
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -65,13 +63,13 @@ Seja sempre cordial, profissional e paciente.`;
         messages
       })
     });
- 
+
     if (!response.ok) {
       const err = await response.json();
       console.error('Erro da Anthropic:', JSON.stringify(err));
       return res.status(500).json({ error: err });
     }
- 
+
     const data = await response.json();
     console.log('Resposta OK da Anthropic');
     return res.status(200).json({ text: data.content[0].text });
