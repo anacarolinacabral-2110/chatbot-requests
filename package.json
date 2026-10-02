@@ -1,0 +1,15 @@
+{
+  "name": "machine-chatbot-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend do chatbot de demandas da Machine — coleta via IA + registro direto no Monday.com, sem Make e sem exigir login no Claude.",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/kv": "^1.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
